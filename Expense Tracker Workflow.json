@@ -1,0 +1,371 @@
+{
+  "name": "Expense Tracker Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1344,
+        16
+      ],
+      "id": "79dc3a22-abc3-4dc2-88fb-65c2ec4ad1a2",
+      "name": "When chat message received",
+      "webhookId": "1b604000-8bc3-44d9-9247-efbdcee6517e"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1fhThNKQK84ytN0DnMF31B352EiOg0YMfuqaIpMMExDY",
+          "mode": "list",
+          "cachedResultName": "Expense Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fhThNKQK84ytN0DnMF31B352EiOg0YMfuqaIpMMExDY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fhThNKQK84ytN0DnMF31B352EiOg0YMfuqaIpMMExDY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Type of Expense": "={{ $json.candidates[0].content.parts[0].text.split(',')[1] }}",
+            "Amount": "={{ $json.candidates[0].content.parts[0].text.split(',')[2] }}",
+            "Credit/Debit": "={{ $json.candidates[0].content.parts[0].text.split(',')[0] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Credit/Debit",
+              "displayName": "Credit/Debit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type of Expense",
+              "displayName": "Type of Expense",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total",
+              "displayName": "Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -304,
+        -128
+      ],
+      "id": "a6820a89-9fe3-40d3-accf-bf8f97686595",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1noDgbxVjVtHKwHB",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert in expense management. Given the input extract the following details.\n\nType of expense could be shopping, movies, gifts etc.\nCredit/Debit is binary\n\nInput: {{ $json.chatInput }}.\nAlso dont give all the 3 outputs together in one text form only. separate it so that I can map Credit/Debit to Credit/Debit field, Type of Expense to Type of Expense field and Amount to Amount field.\n\nMy output should be like this:\n{\nCredit/Debit: <value>\nType of expense: <value>\nAmount: <value>\n}"
+            }
+          ]
+        },
+        "simplify": false,
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        -128
+      ],
+      "id": "2dfa7588-39d0-4caf-90b9-4a5c6473429a",
+      "name": "AI Tracker",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NDv3wdQIDfwWgiTO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are an expert in expense management. Given the input extract the following details.\n\nType of expense could be shopping, movies, gifts etc.\nCredit/Debit is binary\n\nWhenever an input is given, have a running total and export value. Credit must be added to total, Debit must be deducted from total\n\nInput: {{ $json.chatInput }}.\n\nMy output should be like this:\n{\nCredit/Debit: <value>\nType of expense: <value>\nAmount: <value>\nTotal: <value>\n}\n\nInstructions:\n1) The moment you get the output, fill the google sheet fields appropriately\n2) The moment the total is 0, send an email saying \"you are out of money, Officially Bankrupted\"."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1104,
+        -128
+      ],
+      "id": "f0a21d2b-ffd2-40da-a1b0-66f5da76a23b",
+      "name": "Expense Tracker"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-pro-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        112
+      ],
+      "id": "2131c7be-fae7-4796-a12a-1007e302128b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NDv3wdQIDfwWgiTO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1056,
+        128
+      ],
+      "id": "531e173b-11ab-4e93-b023-dc26af4a8092",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "sendTo": "anujjain242@gmail.com",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        96
+      ],
+      "id": "ca49cb72-63bc-4df6-9bbd-c889d5e17f50",
+      "name": "Send a message in Gmail",
+      "webhookId": "939e9398-f017-41ac-b383-90ebd6dc837a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NZnK53IAjxOj9YOW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1fhThNKQK84ytN0DnMF31B352EiOg0YMfuqaIpMMExDY",
+          "mode": "list",
+          "cachedResultName": "Expense Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fhThNKQK84ytN0DnMF31B352EiOg0YMfuqaIpMMExDY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fhThNKQK84ytN0DnMF31B352EiOg0YMfuqaIpMMExDY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Credit/Debit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Credit_Debit', ``, 'string') }}",
+            "Type of Expense": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Type_of_Expense', ``, 'string') }}",
+            "Amount": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Amount', ``, 'string') }}",
+            "Total": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Total', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Credit/Debit",
+              "displayName": "Credit/Debit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type of Expense",
+              "displayName": "Type of Expense",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total",
+              "displayName": "Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -880,
+        128
+      ],
+      "id": "fb9a0f6f-bb63-4b17-aef0-3809018f1787",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1noDgbxVjVtHKwHB",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Expense Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Tracker": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Expense Tracker",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Expense Tracker",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "Expense Tracker",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "Expense Tracker",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "74777bc9-5520-41c0-9efa-f3f2644e58ee",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ce91b55d0f0bb676054b21706702b5ea3e826a7a581fb9bff0525fa1255fa43c"
+  },
+  "id": "df8AKVohbApaC6lc",
+  "tags": []
+}
