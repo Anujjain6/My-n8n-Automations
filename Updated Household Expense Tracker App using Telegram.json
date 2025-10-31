@@ -1,0 +1,386 @@
+{
+  "name": "Household Expense Tracker using Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1540,
+        -260
+      ],
+      "id": "270cf3ea-41f6-4075-82ec-e632a1cbf24d",
+      "name": "Telegram Trigger",
+      "webhookId": "c9df5c82-bcfc-4ce4-ae4a-d7966960dc1f",
+      "credentials": {
+        "telegramApi": {
+          "id": "GbUybCca2izPK0EL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getRows",
+        "documentId": {
+          "__rl": true,
+          "value": "1SL2gICMGmiCrvbCY-xraedAuQ5KSXhe1v5DzNJTu4lI",
+          "mode": "list",
+          "cachedResultName": "Household Expense Tracker using Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SL2gICMGmiCrvbCY-xraedAuQ5KSXhe1v5DzNJTu4lI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SL2gICMGmiCrvbCY-xraedAuQ5KSXhe1v5DzNJTu4lI/edit#gid=0"
+        },
+        "options": {
+          "returnAllMatches": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1320,
+        -260
+      ],
+      "id": "get-last-total",
+      "name": "Get Rows from Sheet",
+      "continueOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1noDgbxVjVtHKwHB",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the last total from the sheet\nconst sheetData = $input.all();\nlet lastTotal = 0;\n\n// Check if we have data from the sheet\nif (sheetData && sheetData.length > 0) {\n  // Filter out any error items\n  const validRows = sheetData.filter(item => !item.error && item.json);\n  \n  if (validRows.length > 0) {\n    // Get the last row's total\n    const lastRow = validRows[validRows.length - 1].json;\n    if (lastRow && lastRow.Total) {\n      // Handle both string and number formats\n      const totalValue = String(lastRow.Total).replace(/[^0-9.-]/g, '');\n      lastTotal = parseFloat(totalValue) || 0;\n    }\n  }\n}\n\n// Get the telegram message\nconst telegramMessage = $('Telegram Trigger').first().json.message.text;\n\nreturn {\n  json: {\n    userMessage: telegramMessage,\n    currentTotal: lastTotal\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1100,
+        -260
+      ],
+      "id": "calculate-current-total",
+      "name": "Get Current Total"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userMessage }}",
+        "options": {
+          "systemMessage": "=You are an expense tracking assistant. Parse the user's input and extract transaction details.\n\nCurrent Balance: {{ $json.currentTotal }}\n\nRules:\n1. Identify if this is a CREDIT (received, salary, income, credit, got, earned) or DEBIT (spent, paid, bought, purchased, debit)\n2. Extract the amount (numbers only, no currency symbols)\n3. Identify the expense type (salary, groceries, shopping, bills, entertainment, etc.)\n4. Calculate new total:\n   - If CREDIT: new total = current balance + amount\n   - If DEBIT: new total = current balance - amount\n\nRespond ONLY with valid JSON in this exact format (no markdown, no extra text):\n{\n  \"transaction_type\": \"Credit\" or \"Debit\",\n  \"expense_type\": \"the category\",\n  \"amount\": numeric_value,\n  \"new_total\": calculated_total\n}\n\nExamples:\nInput: \"received salary 10000\"\nOutput: {\"transaction_type\": \"Credit\", \"expense_type\": \"Salary\", \"amount\": 10000, \"new_total\": 10000}\n\nInput: \"spent 500 on groceries\" (current balance 10000)\nOutput: {\"transaction_type\": \"Debit\", \"expense_type\": \"Groceries\", \"amount\": 500, \"new_total\": 9500}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -860,
+        -260
+      ],
+      "id": "cf2e8896-2078-4d34-bc04-6a213224775f",
+      "name": "AI Agent - Parse Expense"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-thinking-exp-1219",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1060,
+        0
+      ],
+      "id": "be058eba-9bf5-4b22-8507-906f165ee383",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NDv3wdQIDfwWgiTO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI response to extract structured data\nconst aiOutput = $input.first().json.output;\n\nlet parsedData;\ntry {\n  // Try to parse as JSON first\n  parsedData = JSON.parse(aiOutput);\n} catch (e) {\n  // If not valid JSON, try to extract from text\n  const lines = aiOutput.split('\\n');\n  parsedData = {};\n  \n  for (const line of lines) {\n    if (line.includes('transaction_type') || line.includes('Credit/Debit')) {\n      parsedData.transaction_type = line.includes('Credit') ? 'Credit' : 'Debit';\n    }\n    if (line.includes('expense_type') || line.includes('Type')) {\n      const match = line.match(/[\"']([^\"']+)[\"']/g);\n      if (match) parsedData.expense_type = match[match.length - 1].replace(/[\"']/g, '');\n    }\n    if (line.includes('amount') || line.includes('Amount')) {\n      const match = line.match(/\\d+/);\n      if (match) parsedData.amount = parseFloat(match[0]);\n    }\n    if (line.includes('new_total') || line.includes('Total')) {\n      const match = line.match(/\\d+/);\n      if (match) parsedData.new_total = parseFloat(match[0]);\n    }\n  }\n}\n\nreturn {\n  json: {\n    creditDebit: parsedData.transaction_type || 'N/A',\n    typeOfExpense: parsedData.expense_type || 'Unknown',\n    amount: parsedData.amount || 0,\n    total: parsedData.new_total || 0\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        -260
+      ],
+      "id": "parse-ai-response",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1SL2gICMGmiCrvbCY-xraedAuQ5KSXhe1v5DzNJTu4lI",
+          "mode": "list",
+          "cachedResultName": "Household Expense Tracker using Telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SL2gICMGmiCrvbCY-xraedAuQ5KSXhe1v5DzNJTu4lI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1SL2gICMGmiCrvbCY-xraedAuQ5KSXhe1v5DzNJTu4lI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Credit/Debit": "={{ $json.creditDebit }}",
+            "Type of Expense": "={{ $json.typeOfExpense }}",
+            "Amount ": "={{ $json.amount }}",
+            "Total": "={{ $json.total }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Credit/Debit",
+              "displayName": "Credit/Debit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type of Expense",
+              "displayName": "Type of Expense",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount ",
+              "displayName": "Amount ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total",
+              "displayName": "Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -420,
+        -260
+      ],
+      "id": "a0721299-23e4-4923-9a78-cd5660f8c3b1",
+      "name": "Append to Google Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1noDgbxVjVtHKwHB",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "=✅ Transaction Recorded!\n\n💰 Type: {{ $json.creditDebit }}\n📝 Category: {{ $json.typeOfExpense }}\n💵 Amount: ₹{{ $json.amount }}\n\n💼 Current Balance: ₹{{ $json.total }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -200,
+        -260
+      ],
+      "id": "36c89c62-f711-4d05-80f5-f364cc8905fe",
+      "name": "Send Telegram Confirmation",
+      "webhookId": "20673096-73ab-4f70-bab7-4db9-4db7b9d9d687",
+      "credentials": {
+        "telegramApi": {
+          "id": "GbUybCca2izPK0EL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.total }}",
+              "operation": "equal",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        -80
+      ],
+      "id": "check-bankruptcy",
+      "name": "Check if Bankrupt"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "🚨 ALERT: You are out of money! 🚨\n\n💸 Officially Bankrupted!\n\nYour balance has reached ₹0. Time to add more funds!",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        -80
+      ],
+      "id": "bankruptcy-alert",
+      "name": "Send Bankruptcy Alert",
+      "webhookId": "bankruptcy-webhook-id",
+      "credentials": {
+        "telegramApi": {
+          "id": "GbUybCca2izPK0EL",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Rows from Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Rows from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Get Current Total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Total": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Parse Expense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Parse Expense",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Parse Expense": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Append to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Confirmation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check if Bankrupt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Bankrupt": {
+      "main": [
+        [
+          {
+            "node": "Send Bankruptcy Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bef1752f-804e-4a82-91ea-5df88819db6f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ce91b55d0f0bb676054b21706702b5ea3e826a7a581fb9bff0525fa1255fa43c"
+  },
+  "id": "Ca6zxOikmosODbZi",
+  "tags": []
+}
