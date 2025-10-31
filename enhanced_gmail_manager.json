@@ -1,0 +1,424 @@
+{
+  "name": "Jerry Managing Emails Calendar & Meetings - Enhanced",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1584,
+        -64
+      ],
+      "id": "df8b3438-c0a6-4e67-bb75-d097e9f30fee",
+      "name": "Telegram Trigger",
+      "webhookId": "63c8a9e3-4117-426e-a5f8-e8f7dd99143d",
+      "credentials": {
+        "telegramApi": {
+          "id": "ypPFYxiESrxEnAir",
+          "name": "Jerry_Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxTokens": 2048,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        160
+      ],
+      "id": "ed5f03a5-cbba-41b1-9b91-a64ff9ea492e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FjiRnj76SvF9ilyO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "You are Jerry, an expert AI email assistant managing Gmail through Telegram. You help users handle ALL their email needs without opening Gmail.\n\n🎯 YOUR CAPABILITIES:\n\n📧 EMAIL READING & SEARCH:\n- Search emails by sender, subject, keywords, date range\n- Summarize emails (single or multiple)\n- Read unread emails only\n- Find emails with attachments\n- Search by labels (Important, Promotions, Social, etc.)\n- Get email count and statistics\n\n✉️ EMAIL SENDING:\n- Compose and send emails\n- Send to multiple recipients (CC, BCC support)\n- Add attachments if needed\n- Smart subject line suggestions\n\n📝 EMAIL DRAFTING:\n- Create drafts for later editing\n- Save work in progress\n- Draft multiple versions\n\n💬 EMAIL REPLYING:\n- Reply to specific email threads\n- Reply with context from original email\n- Reply all functionality\n\n🗂️ EMAIL ORGANIZATION:\n- Mark emails as read/unread\n- Archive emails\n- Delete emails (move to trash)\n- Star/unstar important emails\n- Add/remove labels\n\n📊 EMAIL INTELLIGENCE:\n- Summarize multiple emails at once\n- Extract action items from emails\n- Identify urgent/important emails\n- Count unread emails\n- Get daily email digest\n\n⚙️ HOW YOU WORK:\n\n1. READ TOOL - For searching, reading, summarizing\n   - Always limit to 5-10 emails max for performance\n   - Use Gmail search syntax for precision\n   - Provide clear summaries\n\n2. SEND TOOL - For new emails\n   - Confirm recipient before sending\n   - Suggest subject if not provided\n\n3. DRAFT TOOL - For saving drafts\n   - Useful for long emails or work in progress\n\n4. REPLY TOOL - For threaded conversations\n   - ALWAYS get message ID first using Read Tool\n   - Maintain conversation context\n\n5. MODIFY TOOL - For organizing emails\n   - Mark as read/unread\n   - Archive, delete, star\n   - Add/remove labels\n\n6. LABEL TOOL - For managing labels\n   - List all labels\n   - Create new labels\n   - Organize inbox better\n\n💡 SMART BEHAVIORS:\n- Always confirm before deleting emails\n- Suggest better search terms if no results\n- Proactively summarize long emails\n- Alert about urgent/important emails\n- Provide actionable insights\n- Update user via Telegram after every action\n\n🎨 RESPONSE STYLE:\n- Clear, concise, friendly\n- Use emojis for better readability\n- Format emails nicely (subject, from, date, preview)\n- Group related information\n- Ask clarifying questions when needed\n\nRemember: You're making Gmail completely accessible through Telegram. Be proactive, intelligent, and helpful!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1376,
+        -64
+      ],
+      "id": "664647bd-1acb-4a46-af26-4ea3ff2c65da",
+      "name": "Email Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.chat.id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1312,
+        176
+      ],
+      "id": "4d837b9b-3ef7-4ad1-bfa2-dcda0e05a2fe",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "ccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('CC', ``, 'string') }}",
+          "bccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('BCC', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -1200,
+        240
+      ],
+      "id": "e6f38083-0b96-4ec6-9e16-bc271f69cfba",
+      "name": "Send Tool",
+      "webhookId": "5e54871f-53c8-4e5c-92d4-13cc3f4233f5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "a0O9mkf9iqA4iIvs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 5,
+        "simplify": true,
+        "filters": {
+          "q": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search', `Search query using Gmail syntax. Examples: from:email@example.com, subject:invoice, is:unread, after:2025/10/01, has:attachment, label:important`, 'string') }}",
+          "labelIds": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Labels', ``, 'array') }}",
+          "includeSpamTrash": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -1056,
+        240
+      ],
+      "id": "4030aac3-bf3c-4398-83f8-2e339790603f",
+      "name": "Read Tool",
+      "webhookId": "8d53a7c4-3165-4d98-b11b-bc02cd10784f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "a0O9mkf9iqA4iIvs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "ccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('CC', ``, 'string') }}",
+          "bccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('BCC', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -912,
+        240
+      ],
+      "id": "89ec2d37-bcd4-4a41-a2c2-a69c8c6a603f",
+      "name": "Draft Tool",
+      "webhookId": "8d53a7c4-3165-4d98-b11b-bc02cd10784f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "a0O9mkf9iqA4iIvs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message_ID', `The message ID to reply to. Must be obtained from Read Tool first.`, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "ccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('CC', ``, 'string') }}",
+          "bccList": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('BCC', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -768,
+        240
+      ],
+      "id": "b5ab9ea7-4a6e-443a-86be-3e0a20fac08e",
+      "name": "Reply Tool",
+      "webhookId": "8d53a7c4-3165-4d98-b11b-bc02cd10784f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "a0O9mkf9iqA4iIvs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message_ID', `The message ID to modify. Get this from Read Tool first.`, 'string') }}",
+        "labelIds": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Action', `Action to perform: MARK_READ, MARK_UNREAD, ARCHIVE, DELETE, STAR, UNSTAR, or label IDs`, 'string') }}"
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -624,
+        240
+      ],
+      "id": "modify-tool-123",
+      "name": "Modify Tool",
+      "webhookId": "modify-tool-webhook",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "a0O9mkf9iqA4iIvs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "label",
+        "operation": "getAll"
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -480,
+        240
+      ],
+      "id": "label-tool-456",
+      "name": "Label Tool",
+      "webhookId": "label-tool-webhook",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "a0O9mkf9iqA4iIvs",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "={{ $('Set Output Data').first().json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -816,
+        -64
+      ],
+      "id": "464b48d1-0196-4b92-b1a7-0512d91a0919",
+      "name": "Send Reply Back to Telegram",
+      "webhookId": "1ce93790-f519-4a4d-b381-22443470cbca",
+      "credentials": {
+        "telegramApi": {
+          "id": "ypPFYxiESrxEnAir",
+          "name": "Jerry_Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "76e3e06b-acdf-45f9-b18a-455f779b21be",
+              "name": "text",
+              "value": "={{ $json.output || 'No response generated. Please try again.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1024,
+        -64
+      ],
+      "id": "5aae7ff3-2590-46d3-aae8-0bbfefc9a52c",
+      "name": "Set Output Data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modify Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Agent": {
+      "main": [
+        [
+          {
+            "node": "Set Output Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Output Data": {
+      "main": [
+        [
+          {
+            "node": "Send Reply Back to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "enhanced-v2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c9ef281b759e257ed062b2736b31f1c6946dc101fe5217f9194b982e0d82cb7"
+  },
+  "id": "nildCS2RNiz22MFC",
+  "tags": [
+    "gmail",
+    "telegram",
+    "ai-agent",
+    "email-management"
+  ]
+}
