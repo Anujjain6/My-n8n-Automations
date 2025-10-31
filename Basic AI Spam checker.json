@@ -1,0 +1,560 @@
+{
+  "name": "My workflow 46",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Project Inquiry",
+        "formDescription": "A form that captures email and message from a potential client",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "Enter your email here",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Message",
+              "placeholder": "Enter your project enquiry here"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        20
+      ],
+      "id": "62043873-cdb2-470a-9211-bdfd77176b09",
+      "name": "On form submission",
+      "webhookId": "c8f7a9b3-d584-4a8e-b96c-cf81e8976b35"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a spam filter, you will receive submission from the lead-gen form and you will have to check whether or not the submissions are spam, or legitimate enquiries. The lead-gen form is a project inquiry form for our web development agency\n\nEverything which is not a request or question related to our business should be categorized as spam. If someone says a test message, then it's a spam. \n\nAdditionally, if you detect dummy emails like \"mail@example.org\", this falls under spam bucket\n\nYour task is to respond with a \"yes\" if it is spam, and \"no\" if it is legitimate\n\nDo not explain yourelf, do not add any additional text or output, only respond with a single word : \"yes\" (if the submissin is spam), \"no\" (if it is legitimate inquiry)",
+              "role": "assistant"
+            },
+            {
+              "content": "=Email : {{ $json.Email }}\nMessage : {{ $json.Message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        280,
+        -128
+      ],
+      "id": "87921792-1815-4e5b-8d8f-2796016414a5",
+      "name": "AI Spam Checker",
+      "credentials": {
+        "openAiApi": {
+          "id": "tTCcjXLj55DhiSlp",
+          "name": "Akhil API key"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "179c981d-f286-4631-b401-409848e6ca3a",
+              "leftValue": "={{ $json.Message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        20
+      ],
+      "id": "6095a0e7-9f18-4992-bfe7-bc783ce2a5d1",
+      "name": "Empty Message Funnel"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk",
+          "mode": "list",
+          "cachedResultName": "Lead Enquiry Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 50405170,
+          "mode": "list",
+          "cachedResultName": "Spam",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit#gid=50405170"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email ": "={{ $('On form submission').item.json.Email }}",
+            "Message": "={{ $('On form submission').item.json.Message }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Email ",
+              "displayName": "Email ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        -224
+      ],
+      "id": "3da1e39f-0c95-451d-88b5-ee62f86cd11e",
+      "name": "Spam sheet fill",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hjEHdOZS1xlMDCM6",
+          "name": "Akhil - Work Account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk",
+          "mode": "list",
+          "cachedResultName": "Lead Enquiry Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "EMAIL": "={{ $('On form submission').item.json.Email }}",
+            "MESSAGE": "={{ $('On form submission').item.json.Message }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "EMAIL",
+              "displayName": "EMAIL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "MESSAGE",
+              "displayName": "MESSAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        -32
+      ],
+      "id": "9f2c4365-4965-4ab9-9ee6-fc5d716adaa5",
+      "name": "Genuine Enquiries",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hjEHdOZS1xlMDCM6",
+          "name": "Akhil - Work Account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "32cd1fff-05ca-46e7-9a6b-ea906c84be1b",
+              "leftValue": "={{ $json.message.content }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        -128
+      ],
+      "id": "9291968b-eb86-4ba5-a543-52553ebf7dc8",
+      "name": "Message Router",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Input -\nEmail :  {{ $json.Email }}\nMessage : {{ $json.Message }}",
+        "options": {
+          "systemMessage": "=You are a spam filter, you will receive submission from the lead-gen form and you will have to check whether or not the submissions are spam, or legitimate enquiries. The lead-gen form is a project inquiry form for our web development agency\n\nEverything which is not a request or question related to our business should be categorized as spam. If someone says a test message, then it's a spam. \n\nAdditionally, if you detect dummy emails like \"mail@example.org\", this falls under spam bucket\n\nIf it is a genuine enquiry, use the genuine enquiries tool\nIf it is not, use the spam enquiries tool"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        280,
+        168
+      ],
+      "id": "69d9f5fb-69e1-4e6b-bc38-cf49b49bf1e5",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "content": "Hit the Button 'D'"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1040,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "13a0b6d7-7ce1-4992-ae1e-0e318c493570",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        392
+      ],
+      "id": "97a92325-c265-4946-b908-789de46fe03d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tTCcjXLj55DhiSlp",
+          "name": "Akhil API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk",
+          "mode": "list",
+          "cachedResultName": "Lead Enquiry Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "EMAIL": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('EMAIL', ``, 'string') }}",
+            "MESSAGE": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('MESSAGE', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "EMAIL",
+              "displayName": "EMAIL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MESSAGE",
+              "displayName": "MESSAGE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        352,
+        392
+      ],
+      "id": "e756573c-cb6b-478a-9de4-4820065da2cc",
+      "name": "Genuine enquiries",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hjEHdOZS1xlMDCM6",
+          "name": "Akhil - Work Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk",
+          "mode": "list",
+          "cachedResultName": "Lead Enquiry Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 50405170,
+          "mode": "list",
+          "cachedResultName": "Spam",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1V6SMfiKu_pPjBmsxPw4euZp8ZArMWaCk-IdwdIH19gk/edit#gid=50405170"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email ": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email_', ``, 'string') }}",
+            "Message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Email ",
+              "displayName": "Email ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        392
+      ],
+      "id": "9540d2fd-e76c-4f4a-9ecd-aba605ff717d",
+      "name": "Spam enquiries",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hjEHdOZS1xlMDCM6",
+          "name": "Akhil - Work Account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Empty Message Funnel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Spam Checker": {
+      "main": [
+        [
+          {
+            "node": "Message Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty Message Funnel": {
+      "main": [
+        [
+          {
+            "node": "AI Spam Checker",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message Router": {
+      "main": [
+        [
+          {
+            "node": "Spam sheet fill",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Genuine Enquiries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Genuine enquiries": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spam enquiries": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f11816b7-7b5d-42d1-a569-d1d174d8d9e0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5adcf055af070598f43d6403984bb72f646a6684587b890d0694cbc7278091f8"
+  },
+  "id": "Xi7uTPGB1cDwZPDT",
+  "tags": []
+}
