@@ -1,0 +1,197 @@
+{
+  "name": "AI Scrapper Data using Apify - Scrapping Dental Clinic from Bangalore",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d34e48c0-558a-4d64-9078-59e2cc6f9fbb",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -432,
+        -208
+      ],
+      "id": "8d7f8e49-b1bc-4482-90a5-13cb6c7b1cf9",
+      "name": "Webhook",
+      "webhookId": "d34e48c0-558a-4d64-9078-59e2cc6f9fbb"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.body.resource.defaultDatasetId }}/items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer apify_api_dM33qop5FfWDHG10onLdAvlZkvmeuK0Vr6Ck"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -224,
+        -208
+      ],
+      "id": "a1e66753-a425-46f2-8495-04e0401811a4",
+      "name": "Get Dataset Items from Apify"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here are the clinic details:\nClinic Name:  {{ $json.title }}\nLocation: {{ $json.address }}\nWebsite: {{ $json.website }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=you are a cold Email writing assistent for clarevoice, an AI agency that provides intelligent voice agent to dental clinics. this voice agents help clients automate phone calls, manage patient inqueries, reduced missing appointments and improve front desk efficiency\n\nyour task is to generate a short and persuasive outreach email (subject line + HTML Body tailored to a specific dental clinic using the following inputs:\n\nClinic name:\n\nLocation:\n\nWebsite: \n\nEmail strategy:\nEach email should be warm, professional and personalized\n\nIdentify a real world pain point that dental clinic often face ( eg front desk overload, missed calls,no shows, limited after hours support )\n\nInclude bulletpoints wherever relevant to highlight pain points\n\nBe consice keep total word count under 120 words\n\nEnd with a clear friendly signature,\nFrom\nAnuj Jain\n\nreturn valid json format"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        -208
+      ],
+      "id": "6ae953de-2bf9-4c25-a8a2-0120b0cb2422",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "966dd2ff-c5d4-4c16-9078-c02b1add527b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FjiRnj76SvF9ilyO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"subject\": \"<< subject goes here>>\",\n\t\"Body\": \"<<Email Body>>\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        144,
+        0
+      ],
+      "id": "e148a678-e1dd-4f03-9e4a-db95b0e642af",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.output.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.output.Body }}",
+        "options": {
+          "sendTo": "anujjain242@gmail.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        -208
+      ],
+      "id": "f2d5bd8e-0c24-4453-a290-ee641ccd90aa",
+      "name": "Create a draft",
+      "webhookId": "6dee474f-dafa-4b5c-b728-998c0e79bbe9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6TvrNSUGYTwDIDAW",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Dataset Items from Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Dataset Items from Apify": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "21a32ba9-6f53-4bdf-92de-8578d496ef3a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c9ef281b759e257ed062b2736b31f1c6946dc101fe5217f9194b982e0d82cb7"
+  },
+  "id": "0NabyIJO0waroqHX",
+  "tags": []
+}
