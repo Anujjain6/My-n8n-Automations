@@ -1,0 +1,435 @@
+{
+  "name": "Customer ChatBot using RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1824,
+        -112
+      ],
+      "id": "621b2f4f-6427-41eb-9ca5-16e819a1700e",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HSaM0v4crCCwUxLV",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "da9e6dac-793c-4485-b4df-eea42fac84fc",
+              "name": "EmailBody",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "42104f58-9499-4875-ba5d-2b320b13da42",
+              "name": "Sender Email",
+              "value": "={{ $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "ceba4fa6-42fd-4c90-a9ca-58895d57df12",
+              "name": "ThreadID",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1616,
+        -112
+      ],
+      "id": "d69713d8-9756-447c-ac56-9305d58f42d3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Analyze the content of the following email and determine whether its related to any following topics, mark customer support as true otherwise mark it as false\n\nCustomer support topics include:\n-Questions about order status, tracking or changes\n-Refund or return requests\n-Subscriptions cancellations or Adjustments\n-Technical Issues with products, websites or apps\n-payment or billing inqueries\n-Requests for speaking with a custome rrepresentative\n\nOutput: Provide the response in a JSON format named customer support set to true or false",
+              "role": "model"
+            },
+            {
+              "content": "=Here is the incoming email:\nEmailBody:  {{ $json.EmailBody }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1408,
+        -112
+      ],
+      "id": "4ffeaad4-7c0a-4907-96ab-0684c21bf579",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NDv3wdQIDfwWgiTO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": true,
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "c7103415-970d-4a3b-95e1-4f717ef45001"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Yes"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8d3a270c-3b11-4e75-b846-5ec0ddce9288",
+                    "leftValue": false,
+                    "rightValue": "false",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "No"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1056,
+        -112
+      ],
+      "id": "4506318d-bf0c-4abe-99b1-265c67a50a1d",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.EmailBody }}",
+        "options": {
+          "systemMessage": "=Role and Purpose\nYou are a customer support agent for SleepyOwl, trained to handle customer requests, inquiries, and concerns with professionalism, empathy, and efficiency.\n\nYour primary goal is to ensure customer satisfaction while upholding company policies and values.\n\n# Task Specification\n1. Read and Analyze: Carefully read the customer's email to identify their main query or concern.\n2. Use the **customerSupportKnowledgeBase** tool to look up relevant policies or FAQs to ensure accurate and policy-compliant responses.\n3. Create a draft response using **createDraft** tool.\n4. After drafting the email, provide a concise summary of the email content.\n\nEnsure the response:\n* directly addresses the query\n* maintains polite and prof tone\n* ends with a sign off: \"Kelly from SleepyOwl\"\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        -304
+      ],
+      "id": "4e51f593-d765-46b0-b2a2-8bb9c6f85dba",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        -64
+      ],
+      "id": "cd095f3d-10ee-41e4-868e-e2227abf4b70",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NDv3wdQIDfwWgiTO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        -512,
+        32
+      ],
+      "id": "f3146b58-11a6-4aba-b6e0-99c18f8831be",
+      "name": "Customer Support Knowledge Base"
+    },
+    {
+      "parameters": {
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "ragmodel768",
+          "mode": "list",
+          "cachedResultName": "ragmodel768"
+        },
+        "options": {
+          "pineconeNamespace": "ecom-policy"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -640,
+        288
+      ],
+      "id": "c0eaa644-e334-44a5-8933-f3794ef81495",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "ar8x350cbVxoMRMJ",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        256
+      ],
+      "id": "6d5bb454-9b03-4a22-bdd5-97419a7f9ead",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NDv3wdQIDfwWgiTO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        480
+      ],
+      "id": "e1f378e1-fee3-46f3-9b32-18c5506efac3",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NDv3wdQIDfwWgiTO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "threadId": "={{ $('Edit Fields').item.json.ThreadID }}",
+          "sendTo": "={{ $('Edit Fields').item.json['Sender Email'] }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "91120d08-babc-4fc5-bfe6-d186ac01f780",
+      "name": "Create a draft in Gmail",
+      "webhookId": "5cc0ba81-3849-42b8-b4f2-c72ba3cb6361",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HSaM0v4crCCwUxLV",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Support Knowledge Base": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Customer Support Knowledge Base",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Customer Support Knowledge Base",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "77fe1ef8-e9f9-405e-a95d-51991649ffe0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ce91b55d0f0bb676054b21706702b5ea3e826a7a581fb9bff0525fa1255fa43c"
+  },
+  "id": "rdrqzVSlB23Kp1ur",
+  "tags": []
+}
